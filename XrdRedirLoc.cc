@@ -32,18 +32,21 @@ namespace Locfile
             XrdCl::File file2;
           public:
                 //Constructor
-                Locfile(){
+                Locfile(std::string filepath){
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"Locfile::Locfile");
+                        log->Debug(1,"Locfile::Locfile()");
                        // pFile=new File(false);
-                       file=new fstream();        
+                       //
+                        XrdCl::URL xurl(filepath);
+                        path=xurl.GetPath();
+                        file=new fstream();        
                 }       
 
                
                 //Destructor
                 ~Locfile(){
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"Locfile::~Locfile");
+                        log->Debug(1,"Locfile::~Locfile()");
                         //delete pFile;
                         delete file;
                 }
@@ -56,13 +59,15 @@ namespace Locfile
                                  ResponseHandler   *handler,
                                  uint16_t           timeout )
       {
-                        XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"open!");
+                        
+        XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+                        log->Debug(1,"Locfile::Open()");
                   XrdCl::URL xUrl(url);
                   path=xUrl.GetPath();
-                  
+                  xUrl=URL(path);
+                            
                   //Work for different file types
-              file->open(path.c_str(),ios::in|ios::out);
+              file->open(path.c_str(),std::fstream::in|std::fstream::out|std::fstream::app);
               if(file->fail()) return XRootDStatus( XrdCl::stError,
                                                     XrdCl::errOSError,
                                                     1,
@@ -73,7 +78,7 @@ namespace Locfile
               
                         virtual XRootDStatus Close(ResponseHandler *handler,uint16_t timeout){
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"close!");
+                        log->Debug(1,"LocFile::Close()");
                 file->close();
               XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
               handler->HandleResponse(ret_st,0);
@@ -104,21 +109,30 @@ namespace Locfile
                                                   uint16_t timeout ){
                         
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"RedLocalFile::Read");
+                        log->Debug(1,"RedLocalFile::Read()");
                        file->seekp(offset);
                        file->read((char*)buffer,size);
               return  XRootDStatus(XrdCl::stOK,0,0,"");
 
                         }
                         
+                        virtual XRootDStatus Write(
+                            uint64_t offset, uint32_t size,const void *buffer, 
+                             XrdCl::ResponseHandler *handler,uint16_t timeout){
+                        XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+                        log->Debug(1,"RedLocalFile::Write()");
+                            file->seekp(offset);
+                          file->write((const char *)buffer,size);
+              return  XRootDStatus(XrdCl::stOK,0,0,"");
+                        }
         };
 
         class Locfilesys : public XrdCl::FileSystemPlugIn{
           public:
                 //Constructor
-                Locfilesys(){
+                Locfilesys(std::string){
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"Locfile::Locfile");
+                        log->Debug(1,"Locfile::LocfileSystem");
                        // pFile=new File(false);
                                
                 }       
@@ -126,7 +140,7 @@ namespace Locfile
                 //Destructor
                 ~Locfilesys(){
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"Locfile::~Locfile");
+                        log->Debug(1,"Locfile::~LocfileSystem");
                         //delete pFile;
                         
                 }
@@ -158,14 +172,14 @@ namespace XrdRedirectToLocal
 XrdCl::FilePlugIn * RedLocalFactory::CreateFile( const std::string &url )
     {
           XrdCl::Log *log = XrdCl::DefaultEnv::GetLog();
-              log->Debug( 1, "RadosFsFactory::CreateFile" );
-                  return static_cast<XrdCl::FilePlugIn *> (new Locfile::Locfile()) ;
+              log->Debug( 1, "RedLocalFactory::CreateFile" );
+                  return static_cast<XrdCl::FilePlugIn *> (new Locfile::Locfile(url)) ;
                     }
 
 XrdCl::FileSystemPlugIn * RedLocalFactory::CreateFileSystem(const std::string &url){
           XrdCl::Log *log = XrdCl::DefaultEnv::GetLog();
-              log->Debug( 1, "RadosFsFactory::CreateFileSystem" );
-                  return static_cast<XrdCl::FileSystemPlugIn *> (new Locfile::Locfilesys()) ;
+              log->Debug( 1, "RedLocalFactory::CreateFileSystem" );
+                  return static_cast<XrdCl::FileSystemPlugIn *> (new Locfile::Locfilesys(url)) ;
 
 }
 }

@@ -30,7 +30,7 @@ namespace XrdRedirectToLocal
       virtual XrdCl::FilePlugIn *CreateFile( const std::string &url );
 
       //------------------------------------------------------------------------
-      // Create a file system plug-in for the given URL
+      // Create a file system plug-in for the give/Lon URL
     virtual XrdCl::FileSystemPlugIn *CreateFileSystem(const std::string &url);
       //------------------------------------------------------------------------
     
