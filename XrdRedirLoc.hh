@@ -2,7 +2,7 @@
 #define __XRDREDIRCT_TOLOCAL_PLUGIN_HH___ 
 #include <stdio.h>
 #include "XrdCl/XrdClPlugInInterface.hh"
-
+#include <algorithm>
 extern XrdCl::Log XrdClRFSLog;
 
 

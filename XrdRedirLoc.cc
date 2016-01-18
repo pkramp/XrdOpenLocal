@@ -5,6 +5,8 @@
 #include "XrdCl/XrdClLog.hh"
 #include "XrdCl/XrdClDefaultEnv.hh"
 #include "XrdCl/XrdClURL.hh"
+#include "XrdCl/XrdClPostMaster.hh"
+#include "XrdCl/XrdClJobManager.hh"
 #include "XrdRedirLoc.hh"
 #include "XrdOuc/XrdOucEnv.hh"
 #include "XrdOuc/XrdOucString.hh"
@@ -33,14 +35,20 @@ namespace Locfile
           public:
                 //Constructor
                 Locfile(std::string filepath){
+			exit(123);
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Locfile()");
                        // pFile=new File(false);
                        //
                         XrdCl::URL xurl(filepath);
                         path=xurl.GetPath();
-                        file=new fstream();        
-                }       
+                 //       path.prepend("file://");
+			file=new fstream();        
+                //file2=XrdCl::File(path);
+XrdCl::PostMaster *postMaster = DefaultEnv::GetPostMaster();
+XrdCl::JobManager *jmr=postMaster->GetJobManager();
+jmr->Stop();
+}       
 
                
                 //Destructor
@@ -59,26 +67,44 @@ namespace Locfile
                                  ResponseHandler   *handler,
                                  uint16_t           timeout )
       {
-                        
-        XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+        
+		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Open()");
                   XrdCl::URL xUrl(url);
-                  path=xUrl.GetPath();
-                  xUrl=URL(path);
-                            
+                  path="file://";
+		 path.append(xUrl.GetPath());
+path.erase( remove( path.begin(), path.end(), ' ' ), path.end() );
+struct timespec tim,tim2;
+tim.tv_sec=5;
+nanosleep(&tim,NULL) ;
+                        log->Debug(1,"Locfile::file2.Open()");
+		XRootDStatus ll= file2.Open(path,flags,mode,handler,timeout);      
+std::cout<<"stuffx"<<std::endl;                
+        log->Debug(1,"Locfile::file.Open().ready");
+		return    ll;            
+  xUrl=URL(path);
+std::string debuginfo="trying local path: ";
+debuginfo.append(path);
+                           log->Debug(2,debuginfo.c_str()); 
                   //Work for different file types
+
               file->open(path.c_str(),std::fstream::in|std::fstream::out|std::fstream::app);
-              if(file->fail()) return XRootDStatus( XrdCl::stError,
+              if(file->fail())
+				{ return XRootDStatus( XrdCl::stError,
                                                     XrdCl::errOSError,
                                                     1,
                                                  "file could not be opened");
-              
-              return XRootDStatus(XrdCl::stOK,0,0,"");
+              }
+	XRootDStatus st=XRootDStatus(XrdCl::stOK,0,0,"");              
+XRootDStatus* ret_st = new XRootDStatus(st);
+            handler->HandleResponse(ret_st, 0);
+return st;
                     }
               
                         virtual XRootDStatus Close(ResponseHandler *handler,uint16_t timeout){
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"LocFile::Close()");
+	return	file2.Close(handler,timeout);
                 file->close();
               XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
               handler->HandleResponse(ret_st,0);
@@ -91,23 +117,29 @@ namespace Locfile
                           
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"RedLocalFile::Stat");
-                        if(file!=NULL){
+			return file2.Stat(force,handler,timeout);                        
+if(file!=NULL){
                         struct stat s;
                         stat(path.c_str(),&s);
 //build all POSIX stat here;
              std::cout<<"File: "<< path <<"\n"<<
                         "length: "<< s.st_size <<"\n"<<
                         "last mod: "<< s.st_mtime <<"\n"<<std::endl;
-              return  XRootDStatus(XrdCl::stOK,0,0,"");
-                        }
-                        else{return XRootDStatus( XrdCl::stError,XrdCl::errOSError,-1,"no file opened error");
+XRootDStatus st=XRootDStatus(XrdCl::stOK,0,0,"");              
+XRootDStatus* ret_st = new XRootDStatus(st);
+handler->HandleResponse(ret_st, 0);
+return st;
+}
+                        else{
+
+return XRootDStatus( XrdCl::stError,XrdCl::errOSError,-1,"no file opened error");
                         }
                           }
                         
                         virtual XRootDStatus Read(uint64_t offset,uint32_t size,
                                                   void  *buffer,XrdCl::ResponseHandler *handler, 
                                                   uint16_t timeout ){
-                        
+              	return file2.Read(offset,size,buffer,handler,timeout);          
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"RedLocalFile::Read()");
                        file->seekp(offset);
@@ -121,6 +153,7 @@ namespace Locfile
                              XrdCl::ResponseHandler *handler,uint16_t timeout){
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"RedLocalFile::Write()");
+			return	file2.Write(offset,size,buffer,handler,timeout);
                             file->seekp(offset);
                           file->write((const char *)buffer,size);
               return  XRootDStatus(XrdCl::stOK,0,0,"");
