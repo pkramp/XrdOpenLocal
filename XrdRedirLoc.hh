@@ -3,6 +3,24 @@
 #include <stdio.h>
 #include "XrdCl/XrdClPlugInInterface.hh"
 #include <algorithm>
+#include "XrdCl/XrdClFile.hh"
+#include "XrdCl/XrdClFileSystem.hh"
+#include "XrdCl/XrdClPlugInInterface.hh"
+#include "XrdCl/XrdClLog.hh"
+#include "XrdCl/XrdClDefaultEnv.hh"
+#include "XrdCl/XrdClURL.hh"
+#include "XrdOuc/XrdOucEnv.hh"
+#include "XrdOuc/XrdOucString.hh"
+#include "XrdVersion.hh"
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdexcept> 
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <utility>
 extern XrdCl::Log XrdClRFSLog;
 
 

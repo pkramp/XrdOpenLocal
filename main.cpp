@@ -1,11 +1,11 @@
-#include "XrdRedirLoc.cc"
+#include "XrdRedirLoc.hh"
 int main(int argc, char** argv){
 
   std::map<std::string,std::string> x;
   XrdCl::File * fp=new XrdCl::File(true);
   XrdCl::OpenFlags::Flags f;
   f=XrdCl::OpenFlags::Write;
-  Access::Mode mode;
+  XrdCl::Access::Mode mode;
   string test="i have been written from the local client";
   XrdCl::ResponseHandler* handler=new XrdCl::ResponseHandler;
   fp->Open(argv[1], f , mode ,handler,0);
