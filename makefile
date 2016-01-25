@@ -12,10 +12,10 @@ redir: clean_o clean_lib
 clean:clean_o clean_lib clean_exe 
 
 clean_o:
-	rm  *.o 
+	-rm  *.o 
 clean_lib:
-	rm *.so
+	-rm *.so
 clean_exe:
-	rm -rf *.exe
+	-rm -rf *.exe
 install: redir
 	cp XrdRedir.Loc.so.1.0 /xr4i/plugins/lib
