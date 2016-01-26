@@ -70,18 +70,25 @@ enum Mode{Local,Proxy,Undefined};
                 XrdCl::URL xUrl(url);
                 string path=xUrl.GetPath();
                 string servername=xUrl.GetHostName();
-                std::cout<<"servername/path"<<servername<<"/"<<path<<std::endl;
+                std::stringstream out;
+                out<<"setting  url:\""<<url<<"\"";
                 if(getLocalAdressMap(servername).compare("NotInside")!=0){
             mode=Local;
                         log->Debug(1,"Setting plugIn to \"local\"- mode");
-            return path;
+                    out<<" to: \""<<path<<"\""<<std::endl;
+                        log->Debug(1,out.str().c_str());
+                        return path;
             }
             {
-                        log->Debug(1,"Setting plugIn to \"proxy-prefix\"-mode");
             string proxy=proxyPrefix;
             mode=Proxy;
             proxy.append(url);
-            return url;
+                    
+                        log->Debug(1,"Setting plugIn to \"proxy-prefix\"-mode");
+            out<<" to: "<<proxy<<"\""<<std::endl;
+                        log->Debug(1,out.str().c_str());
+            
+            return proxy;
             }
             
             if(mode==Undefined){
@@ -94,7 +101,8 @@ enum Mode{Local,Proxy,Undefined};
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Locfile");
                        // pFile=new File(false);
-                       file=new fstream();        
+                       file=new fstream();
+                       file2=XrdCl::File(false);
                        mode=Undefined;
                 }       
 
@@ -291,7 +299,7 @@ msg<<"XrdRedirLocDEFAULTCONF file is: "<<env_p<<std::endl;
 XrdCl::FilePlugIn * RedLocalFactory::CreateFile( const std::string &url )
     {
           XrdCl::Log *log = XrdCl::DefaultEnv::GetLog();
-              log->Debug( 1, "RadosFsFactory::CreateFile" );
+              log->Debug( 1, "RedLocalFactory::CreateFile" );
                   return static_cast<XrdCl::FilePlugIn *> (new Locfile::Locfile()) ;
                     }
 
