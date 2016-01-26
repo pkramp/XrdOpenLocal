@@ -30,7 +30,7 @@ enum Mode{Local,Proxy,Undefined};
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Locfile");
                 log->Debug(1,"Swap to Local Map:");
-            for(auto i : swapLocalMap){stringstream msg ; msg<<i.first<<" to"<<i.second<<std::endl;log->Debug(1,msg.str().c_str());}
+            for(auto i : swapLocalMap){stringstream msg ; msg<<"\""<<i.first<<"\" to \""<<i.second<<"\""<<std::endl;log->Debug(1,msg.str().c_str());}
             
             stringstream msg; msg<<"proxyPrefix: " << proxyPrefix<<std::endl;log->Debug(1,msg.str().c_str());
             }
@@ -127,7 +127,7 @@ enum Mode{Local,Proxy,Undefined};
                 auto newurl= rewrite_path(url)    ;  
           if(this->mode==Proxy){return file2.Open(newurl,flags,mode,handler,timeout);}         
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"open!");
+                        log->Debug(1,"Locfile::Open");
                   
                   file->open(newurl.c_str(),std::ios::in  | std::ios::out| std::ios::trunc );
 
@@ -142,7 +142,7 @@ enum Mode{Local,Proxy,Undefined};
                         virtual XRootDStatus Close(ResponseHandler *handler,uint16_t timeout){
                             if(mode==Proxy){return file2.Close(handler,timeout);}         
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"close!");
+                        log->Debug(1,"Locfile::Close");
                 file->close();
               XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
               handler->HandleResponse(ret_st,0);
@@ -154,7 +154,8 @@ enum Mode{Local,Proxy,Undefined};
                           
                           
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"RedLocalFile::Stat");
+                        log->Debug(1,"Locfile::Stat");
+                        if(this->mode==Proxy)return file2.Stat(force,handler,timeout);
                         if(file!=NULL){
                         struct stat s;
                         stat(path.c_str(),&s);
