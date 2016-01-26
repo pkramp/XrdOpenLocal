@@ -17,56 +17,26 @@ enum Mode{Local,Proxy,Undefined};
             
             private:
             static std::map<std::string,std::string> swapLocalMap ;
-            static std::map<std::string,std::string> swapAdressMap ;
+            static std::string proxyPrefix;
             std::string path;
             Mode mode;
             fstream* file;
             XrdCl::File file2;
           public:
+            static void setProxyPrefix(std::string toProxyPrefix){
+            proxyPrefix=toProxyPrefix;
+            }
             static void printMaps(){
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Locfile");
                 log->Debug(1,"Swap to Local Map:");
             for(auto i : swapLocalMap){stringstream msg ; msg<<i.first<<" to"<<i.second<<std::endl;log->Debug(1,msg.str().c_str());}
             
-                log->Debug(1,"Swap to Adress Map:");
-            for(auto i : swapAdressMap){stringstream msg ; msg<<i.first<<" to"<<i.second<<std::endl;log->Debug(1,msg.str().c_str());}
-            }
-            static void setSwapAdressMap(std::pair<std::string,std::string>toadd){
-                Locfile::swapAdressMap.insert(toadd);
+            stringstream msg; msg<<"proxyPrefix: " << proxyPrefix<<std::endl;log->Debug(1,msg.str().c_str());
             }
             static void setSwapLocalMap(std::pair<std::string,std::string>toadd){
             swapLocalMap.insert(toadd);
             }
-            std::string  getSwapAdressMap( std::string servername){
-                auto addr=swapAdressMap.find(servername);
-                if(addr==swapAdressMap.end()){
-                return "NotInside";
-                }
-                else{
-                return addr->second;
-                }
-            
-            }
-            static void parseIntoAdressMap(std::string configline){
-                //std::cout<<"parsing: "<<configline<<std::endl;
-                std::string delim = ";";
-                std::string subdelim="§§";   
-                auto start = 0;
-                auto end = configline.find(delim);
-            do{
-             
-            std::string sub= configline.substr(start, end - start); 
-                auto startx = 0;       
-                auto endx = sub.find(subdelim);
-                std::string lpath=sub.substr(0,endx);
-                std::string rpath=sub.substr(endx+subdelim.length(),sub.length()-endx);
-                setSwapAdressMap(std::make_pair(lpath,rpath)); 
-                start = end + delim.length();
-                end = configline.find(delim, start);
-    } while (end != std::string::npos);
-            } 
-           
             static void parseIntoLocalMap(std::string configline){
                 //std::cout<<"parsing: "<<configline<<std::endl;
                 std::string delim = ";";
@@ -106,9 +76,9 @@ enum Mode{Local,Proxy,Undefined};
                         log->Debug(1,"Setting plugIn to \"local\"- mode");
             return path;
             }
-            if(getSwapAdressMap(servername).compare("NotInside")!=0){
+            {
                         log->Debug(1,"Setting plugIn to \"proxy-prefix\"-mode");
-            string proxy=getSwapAdressMap(servername);
+            string proxy=proxyPrefix;
             mode=Proxy;
             proxy.append(url);
             return url;
@@ -250,7 +220,7 @@ enum Mode{Local,Proxy,Undefined};
 
         };
             std::map<std::string,std::string> Locfile::swapLocalMap ;
-            std::map<std::string,std::string> Locfile::swapAdressMap ;
+             std::string Locfile::proxyPrefix;
 }
 
 namespace XrdRedirectToLocal
@@ -305,14 +275,14 @@ msg<<"XrdRedirLocDEFAULTCONF file is: "<<env_p<<std::endl;
      XrdCl::Log *log = DefaultEnv::GetLog();
          log->Debug( 1, "RedLocalFactory::Constructor" );
         
-        if(config.find("redirectproxy")!=config.end())Locfile::Locfile::parseIntoAdressMap(config.find("redirectproxy")->second);    
+         if(config.find("proxyPrefix")!=config.end())Locfile::Locfile::setProxyPrefix(config.find("proxyPrefix")->second);
          if(config.find("redirectlocal")!=config.end())Locfile::Locfile::parseIntoLocalMap(config.find("redirectlocal")->second);    
         if(config.size()==0){
             std::map<std::string,std::string> defaultconfig;
                 log->Debug(1,"config size is zero... This is a default plugin call -> loading default config File @ XrdRedirLocDEFAULTCONF Environment Variable ");
             loadDefaultConf(defaultconfig);
 
-        if(defaultconfig.find("redirectproxy")!=defaultconfig.end())Locfile::Locfile::parseIntoAdressMap(defaultconfig.find("redirectproxy")->second);    
+         if(defaultconfig.find("proxyPrefix")!=defaultconfig.end())Locfile::Locfile::setProxyPrefix(defaultconfig.find("proxyPrefix")->second);
          if(defaultconfig.find("redirectlocal")!=defaultconfig.end())Locfile::Locfile::parseIntoLocalMap(defaultconfig.find("redirectlocal")->second);    
         } 
          Locfile::Locfile::printMaps();    
