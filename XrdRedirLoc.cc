@@ -80,8 +80,10 @@ enum Mode{Local,Proxy,Undefined};
                         return path;
             }
             {
-            string proxy=proxyPrefix;
             mode=Proxy;
+            
+            string proxy="root://";
+            proxy.append(proxyPrefix);
             proxy.append(url);
                     
                         log->Debug(1,"Setting plugIn to \"proxy-prefix\"-mode");
@@ -97,12 +99,11 @@ enum Mode{Local,Proxy,Undefined};
             }
 
                 //Constructor
-                Locfile(){
+                Locfile():file2(false){
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Locfile");
                        // pFile=new File(false);
                        file=new fstream();
-                       file2=XrdCl::File(false);
                        mode=Undefined;
                 }       
 
