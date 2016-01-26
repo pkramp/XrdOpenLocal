@@ -1,6 +1,10 @@
 
 #include "XrdRedirLoc.hh"
 #include <exception>
+#include <cstdlib>
+#include <string>
+#include <utility>
+#include "XrdCl/XrdClUtils.hh"
 using namespace XrdCl;
 XrdVERSIONINFO(XrdClGetPlugIn, Locfile);
 
@@ -20,11 +24,13 @@ enum Mode{Local,Proxy,Undefined};
             XrdCl::File file2;
           public:
             static void printMaps(){
-                std::cout<<"Swap to Local Map:"<<std::endl;
-            for(auto i : swapLocalMap) std::cout<<i.first<<" to "<<i.second<<std::endl;
+                        XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
+                        log->Debug(1,"Locfile::Locfile");
+                log->Debug(1,"Swap to Local Map:");
+            for(auto i : swapLocalMap){stringstream msg ; msg<<i.first<<" to"<<i.second<<std::endl;log->Debug(1,msg.str().c_str());}
             
-                std::cout<<"Swap to Adress Map:"<<std::endl;
-            for(auto i : swapAdressMap) std::cout<<i.first<<" to "<<i.second<<std::endl;
+                log->Debug(1,"Swap to Adress Map:");
+            for(auto i : swapAdressMap){stringstream msg ; msg<<i.first<<" to"<<i.second<<std::endl;log->Debug(1,msg.str().c_str());}
             }
             static void setSwapAdressMap(std::pair<std::string,std::string>toadd){
                 Locfile::swapAdressMap.insert(toadd);
@@ -90,15 +96,18 @@ enum Mode{Local,Proxy,Undefined};
                 }
             }
             std::string rewrite_path(std::string url){
+                        XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
                 XrdCl::URL xUrl(url);
                 string path=xUrl.GetPath();
                 string servername=xUrl.GetHostName();
                 std::cout<<"servername/path"<<servername<<"/"<<path<<std::endl;
                 if(getLocalAdressMap(servername).compare("NotInside")!=0){
             mode=Local;
+                        log->Debug(1,"Setting plugIn to \"local\"- mode");
             return path;
             }
             if(getSwapAdressMap(servername).compare("NotInside")!=0){
+                        log->Debug(1,"Setting plugIn to \"proxy-prefix\"-mode");
             string proxy=getSwapAdressMap(servername);
             mode=Proxy;
             proxy.append(url);
@@ -116,7 +125,6 @@ enum Mode{Local,Proxy,Undefined};
                         log->Debug(1,"Locfile::Locfile");
                        // pFile=new File(false);
                        file=new fstream();        
-                       std::cout<<"creating new LocFile"<<std::endl;
                        mode=Undefined;
                 }       
 
@@ -247,13 +255,66 @@ enum Mode{Local,Proxy,Undefined};
 
 namespace XrdRedirectToLocal
 {
+
+   void RedLocalFactory::loadDefaultConf(std::map<std::string,std::string>& config){
+     XrdCl::Log *log = DefaultEnv::GetLog();
+         log->Debug( 1, "RedLocalFactory::loadDefaultConf" );
+if(const char* env_p = std::getenv("XrdRedirLocDEFAULTCONF")){
+    std::string confFile=env_p;
+    std::stringstream msg;
+msg<<"XrdRedirLocDEFAULTCONF file is: "<<env_p<<std::endl;
+    log->Debug( 1,msg.str().c_str() );
+
+    Status st = XrdCl::Utils::ProcessConfig( config, confFile );
+        if(config.size() ==0 )throw std::runtime_error("LocFile cannot be loaded as the default plugin since it does not seem to have any content");
+    if( !st.IsOK() )
+    {
+      return;
+    }
+
+    const char *keys[] = { "url", "lib", "enable", 0 };
+    for( int i = 0; keys[i]; ++i )
+    {
+      if( config.find( keys[i] ) == config.end() )
+      {
+        return;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    // Attempt to load the plug in and place it in the map
+    //--------------------------------------------------------------------------
+    std::string url = config["url"];
+    std::string lib = config["lib"];
+    std::string enable = config["enable"];
+
+
+    if( enable == "false" )
+    {
+    throw std::runtime_error("Locfile cannot be loaded as the default plugin, since \"enable\" is set \"false\"  in the XrdRedirLocDEFAULTCONF file ");
+    
+    }
+}   
+
+    else{throw std::runtime_error("Locfile cannot be loaded as the default plugin, since XrdRedirLocDEFAULTCONF is not set in the environment");
+  }
+} 
+    
     RedLocalFactory::RedLocalFactory( const std::map<std::string, std::string> &config ) : 
     XrdCl::PlugInFactory(){
      XrdCl::Log *log = DefaultEnv::GetLog();
          log->Debug( 1, "RedLocalFactory::Constructor" );
-         
-         if(config.find("redirectproxy")!=config.end())Locfile::Locfile::parseIntoAdressMap(config.find("redirectproxy")->second);    
+        
+        if(config.find("redirectproxy")!=config.end())Locfile::Locfile::parseIntoAdressMap(config.find("redirectproxy")->second);    
          if(config.find("redirectlocal")!=config.end())Locfile::Locfile::parseIntoLocalMap(config.find("redirectlocal")->second);    
+        if(config.size()==0){
+            std::map<std::string,std::string> defaultconfig;
+                log->Debug(1,"config size is zero... This is a default plugin call -> loading default config File @ XrdRedirLocDEFAULTCONF Environment Variable ");
+            loadDefaultConf(defaultconfig);
+
+        if(defaultconfig.find("redirectproxy")!=defaultconfig.end())Locfile::Locfile::parseIntoAdressMap(defaultconfig.find("redirectproxy")->second);    
+         if(defaultconfig.find("redirectlocal")!=defaultconfig.end())Locfile::Locfile::parseIntoLocalMap(defaultconfig.find("redirectlocal")->second);    
+        } 
          Locfile::Locfile::printMaps();    
     }
 

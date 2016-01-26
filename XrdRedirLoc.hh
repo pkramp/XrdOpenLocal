@@ -38,7 +38,7 @@ namespace XrdRedirectToLocal
      RedLocalFactory(const std::map<std::string, std::string> &config);
       //------------------------------------------------------------------------
       // Destructor
-
+     void loadDefaultConf(std::map<std::string,std::string>& config);
   //------------------------------------------------------------------------
      virtual ~RedLocalFactory() {}
 
