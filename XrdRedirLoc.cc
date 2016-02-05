@@ -147,7 +147,11 @@ PostMaster *postMaster = DefaultEnv::GetPostMaster();
                         virtual XRootDStatus Close(ResponseHandler *handler,uint16_t timeout){
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Close");
-                            if(mode==Proxy){return xfile.Close(handler,timeout);}         
+                            if(mode==Proxy){
+                        log->Debug(1,"Locfile::Close::Proxy");
+                                return xfile.Close(handler,timeout);
+                            }         
+                        log->Debug(1,"Locfile::Close::local");
                 file->close();
               XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
               handler->HandleResponse(ret_st,0);
@@ -155,13 +159,24 @@ PostMaster *postMaster = DefaultEnv::GetPostMaster();
 
               }
 
+      virtual bool IsOpen() const
+      {
+      if(this->mode==Proxy)return xfile.IsOpen();
+      if(this->mode==Local)return file->is_open(); 
+      
+      }
                         virtual XRootDStatus Stat(bool force,ResponseHandler *handler,uint16_t timeout){
                           
                           
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Stat");
-                        if(this->mode==Proxy)return xfile.Stat(force,handler,timeout);
+                        if(this->mode==Proxy)
+                        {    
+                        log->Debug(1,"Locfile::Stat::proxy");
+                        return xfile.Stat(force,handler,timeout);
+                        }
                         if(file!=NULL){
+                        
                         struct stat s;
                         stat(path.c_str(),&s);
 //build all POSIX stat here;
@@ -186,7 +201,9 @@ PostMaster *postMaster = DefaultEnv::GetPostMaster();
 
               return  XRootDStatus(XrdCl::stOK,0,0,"");
                         }
-                        else{return XRootDStatus( XrdCl::stError,XrdCl::errOSError,-1,"no file opened error");
+                        else{
+                        log->Debug(1,"Locfile::Stat::Error No file opened");
+                            return XRootDStatus( XrdCl::stError,XrdCl::errOSError,-1,"no file opened error");
                         }
                           }
                         
