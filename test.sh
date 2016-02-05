@@ -1,6 +1,6 @@
 #!/bin/bash
 #xrdcp -d 3 -DITransactionTimeout 300 -DIFirstConnectMaxCnt 3 -DIReadCacheSize 0 root://10.16.1.202:1094//xroot://eosalice.cern.ch:1094//13/39046/768c1e50-a1d8-11e5-b993-6b91c4f35fb7 /tmp/testalice -OS\&authz="-----BEGIN SEALED CIPHER-----
-xrdcopy -d 3 -DITransactionTimeout 300 -DIFirstConnectMaxCnt 3 -DIReadCacheSize 0  root://eosalice.cern.ch:1094//13/39046/768c1e50-a1d8-11e5-b993-6b91c4f35fb7 root://xrd-manager:1094//tmp/testalice -OS\&authz="-----BEGIN SEALED
+xrdcopy -d 3 -DITransactionTimeout 300 -DIFirstConnectMaxCnt 3 -DIReadCacheSize 0  root://eosalice.cern.ch:1094//13/39046/768c1e50-a1d8-11e5-b993-6b91c4f35fb7 /tmp/testalice -OS\&authz="-----BEGIN SEALED
 CIPHER-----
 kqgqbg82MkC8IAgLbAPBmZRrpmniV82ptfEHEDMT+LYO5iVLpDc3tjXj5Ku3sICoHAYOtu0fRRt8
 bcvUbEOUWBFZS3v3n1FLyAaQNrtNGAnCSyAimjDzzqUB0GpVAK5IPQ-GRMXhwGek4G41GcjJLLS4
