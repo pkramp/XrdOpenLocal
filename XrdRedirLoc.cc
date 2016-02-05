@@ -23,7 +23,7 @@ enum Mode{Local,Proxy,Undefined};
             Mode mode;
             fstream* file;
             XrdCl::File xfile;
-          public:
+            public:
             static void setProxyPrefix(std::string toProxyPrefix){
             proxyPrefix=toProxyPrefix;
             }
@@ -72,10 +72,10 @@ enum Mode{Local,Proxy,Undefined};
                 string path=xUrl.GetPath();
                 string servername=xUrl.GetHostName();
                 std::stringstream out;
-                out<<"setting  url:\""<<url<<"\"";
+                out<<"Locfile::setting  url:\""<<url<<"\"";
                 if(getLocalAdressMap(servername).compare("NotInside")!=0){
             mode=Local;
-                        log->Debug(1,"Setting plugIn to \"local\"- mode");
+                        log->Debug(1,"Locfile::rewrite Setting plugIn to \"local\"- mode");
                     out<<" to: \""<<path<<"\""<<std::endl;
                         log->Debug(1,out.str().c_str());
                         return path;
@@ -84,10 +84,14 @@ enum Mode{Local,Proxy,Undefined};
             mode=Proxy;
             
             string proxy="root://";
+            std::stringstream protocol;
+            protocol<<xUrl.GetProtocol();
+
+            proxy.append(protocol.str().c_str());
             proxy.append(proxyPrefix);
             proxy.append(url);
                     
-                        log->Debug(1,"Setting plugIn to \"proxy-prefix\"-mode");
+                        log->Debug(1,"Locfile::rewrite Setting plugIn to \"proxy-prefix\"-mode");
             out<<" to: "<<proxy<<"\""<<std::endl;
                         log->Debug(1,out.str().c_str());
             
@@ -95,7 +99,7 @@ enum Mode{Local,Proxy,Undefined};
             }
             
             if(mode==Undefined){
-                throw std::runtime_error("Undefined Mode in Plugin Line: __LINE__ ");
+                throw std::runtime_error("Locfile::rewrite Undefined Mode in Plugin Line: __LINE__ ");
             }
             }
 
@@ -249,21 +253,68 @@ PostMaster *postMaster = DefaultEnv::GetPostMaster();
                 
                 }
         };
+             std::map<std::string,std::string> Locfile::swapLocalMap ;
+             std::string Locfile::proxyPrefix;
 
         class Locfilesys : public XrdCl::FileSystemPlugIn{
+            private:
+        static string proxyPrefix;
           public:
-                //Constructor
-                Locfilesys(){
-                        XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"Locfile::Locfile");
-                       // pFile=new File(false);
-                               
-                }       
-                
+            Mode mode;
+            std::string origURL;
+
+            XrdCl::FileSystem fs; 
+            std::string rewrite_path(std::string url){
+              origURL=url;
+                XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
+                XrdCl::URL xUrl(url);
+                string path=xUrl.GetPath();
+                string servername=xUrl.GetHostName();
+                string protocol=xUrl.GetProtocol();
+                std::stringstream out;
+    
+            mode=Proxy;
+            std::string proxy="";
+          //  proxy.append(protocol);
+            proxy.append("root://");
+            proxy.append(proxyPrefix);
+            proxy.append(url);
+                   out.clear(); 
+                   proxy=proxyPrefix;     
+                   log->Debug(1,"Locfilesys::rewrite Setting fs plugIn to \"proxy-prefix\"-mode");
+                        out<<"Setting";
+                        out<<xUrl.GetURL();
+                        out<<" to: "<<proxy<<"\""<<std::endl;
+                        log->Debug(1,out.str().c_str());
+            
+            return proxy;
+            
+            
+            if(mode==Undefined){
+                throw std::runtime_error("Locfilesys::rewrit Undefined Mode in Plugin Line: __LINE__ ");
+            }
+            }
+            
+            std::string orig_url(std::string toadd){
+                std::stringstream x;
+                x<<"/x"<<origURL<<toadd;
+            return x.str();
+            }            
+            static void setProxyPrefix(std::string toProxyPrefix){
+            proxyPrefix=toProxyPrefix;
+            }
+            //Constructor
+                Locfilesys(std::string url):fs(rewrite_path(url),false){
+                    origURL=url;    
+                    XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+                        log->Debug(1,"Locfilesys::Locfilesys");
+                        mode=Undefined;
+
+                }             
                 //Destructor
                 ~Locfilesys(){
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"Locfile::~Locfile");
+                        log->Debug(1,"Locfilesys::~Locfilesys");
                         //delete pFile;
                         
                 }
@@ -280,11 +331,21 @@ PostMaster *postMaster = DefaultEnv::GetPostMaster();
                        return  XrdCl::FileSystemPlugIn::Locate(path,flags,handler,timeout);
         }
 
-        };
-            std::map<std::string,std::string> Locfile::swapLocalMap ;
-             std::string Locfile::proxyPrefix;
-}
 
+                //Constructor
+virtual XRootDStatus Stat( const std::string &path,
+                                 ResponseHandler   *handler,
+                                 uint16_t           timeout )
+      {
+     
+          XrdCl::Log *log = DefaultEnv::GetLog();
+                        log->Debug(1,"Locfilesys::Stat");
+return fs.Stat(orig_url(path),handler,timeout);
+                        log->Debug(1,"Locfilesys::Stat::end");
+      }
+        };
+std::string Locfilesys::proxyPrefix;
+}
 namespace XrdRedirectToLocal
 {
 
@@ -346,7 +407,9 @@ msg<<"XrdRedirLocDEFAULTCONF file is: "<<env_p<<std::endl;
 
          if(defaultconfig.find("proxyPrefix")!=defaultconfig.end())Locfile::Locfile::setProxyPrefix(defaultconfig.find("proxyPrefix")->second);
          if(defaultconfig.find("redirectlocal")!=defaultconfig.end())Locfile::Locfile::parseIntoLocalMap(defaultconfig.find("redirectlocal")->second);    
-        } 
+        
+         if(defaultconfig.find("proxyPrefix")!=defaultconfig.end())Locfile::Locfilesys::setProxyPrefix(defaultconfig.find("proxyPrefix")->second);
+} 
          Locfile::Locfile::printMaps();    
     }
 
@@ -359,8 +422,8 @@ XrdCl::FilePlugIn * RedLocalFactory::CreateFile( const std::string &url )
 
 XrdCl::FileSystemPlugIn * RedLocalFactory::CreateFileSystem(const std::string &url){
           XrdCl::Log *log = XrdCl::DefaultEnv::GetLog();
-              log->Debug( 1, "RadosFsFactory::CreateFileSystem" );
-                  return static_cast<XrdCl::FileSystemPlugIn *> (new Locfile::Locfilesys()) ;
+              log->Debug( 1, "RedLocalFactory::CreateFilesys" );
+                  return static_cast<XrdCl::FileSystemPlugIn *> (new Locfile::Locfilesys(url)) ;
 
 }
 }
