@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include "XrdCl/XrdClUtils.hh"
+#include <assert.h>
 using namespace XrdCl;
 XrdVERSIONINFO(XrdClGetPlugIn, Locfile);
 
@@ -21,7 +22,7 @@ enum Mode{Local,Proxy,Undefined};
             std::string path;
             Mode mode;
             fstream* file;
-            XrdCl::File file2;
+            XrdCl::File xfile;
           public:
             static void setProxyPrefix(std::string toProxyPrefix){
             proxyPrefix=toProxyPrefix;
@@ -99,7 +100,7 @@ enum Mode{Local,Proxy,Undefined};
             }
 
                 //Constructor
-                Locfile():file2(false){
+                Locfile():xfile(false){
                         XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Locfile");
                        // pFile=new File(false);
@@ -124,12 +125,16 @@ enum Mode{Local,Proxy,Undefined};
                                  ResponseHandler   *handler,
                                  uint16_t           timeout )
       {
-                auto newurl= rewrite_path(url)    ;  
-          if(this->mode==Proxy){return file2.Open(newurl,flags,mode,handler,timeout);}         
+                auto newurl= rewrite_path(url)    ; 
+PostMaster *postMaster = DefaultEnv::GetPostMaster();
+  if( !postMaster )
+            return Status( stError, errUninitialized );
+
+          if(this->mode==Proxy){return xfile.Open(newurl,flags,mode,handler,timeout);}         
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Open");
                   
-                  file->open(newurl.c_str(),std::ios::in  | std::ios::out| std::ios::trunc );
+                  file->open(newurl.c_str(),std::ios::in  | std::ios::out| std::ios::app );
 
               if(file->fail()) return XRootDStatus( XrdCl::stError,
                                                     XrdCl::errOSError,
@@ -140,9 +145,9 @@ enum Mode{Local,Proxy,Undefined};
                     }
               
                         virtual XRootDStatus Close(ResponseHandler *handler,uint16_t timeout){
-                            if(mode==Proxy){return file2.Close(handler,timeout);}         
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Close");
+                            if(mode==Proxy){return xfile.Close(handler,timeout);}         
                 file->close();
               XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
               handler->HandleResponse(ret_st,0);
@@ -155,14 +160,30 @@ enum Mode{Local,Proxy,Undefined};
                           
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
                         log->Debug(1,"Locfile::Stat");
-                        if(this->mode==Proxy)return file2.Stat(force,handler,timeout);
+                        if(this->mode==Proxy)return xfile.Stat(force,handler,timeout);
                         if(file!=NULL){
                         struct stat s;
                         stat(path.c_str(),&s);
 //build all POSIX stat here;
-             std::cout<<"File: "<< path <<"\n"<<
+                    StatInfo* sinfo = new StatInfo();
+                    std::ostringstream data;
+                    data<<"File: "<< path <<"\n"<<
                         "length: "<< s.st_size <<"\n"<<
                         "last mod: "<< s.st_mtime <<"\n"<<std::endl;
+
+                    if(!sinfo->ParseServerResponse(data.str().c_str())){
+                    delete sinfo;
+                    return XRootDStatus(XrdCl::stError, errDataError);
+                    }else{
+                    XRootDStatus* ret_st = new XRootDStatus(XrdCl::stOK, 0, 0, "");
+                          AnyObject* obj = new AnyObject();
+                              obj->Set(sinfo);
+                              handler->HandleResponse(ret_st, obj); 
+                                  log->Debug( 1, "Locfile::Stat returning stat structure");
+                                      return XRootDStatus( XrdCl::stOK,0,0,"");
+                    }
+
+
               return  XRootDStatus(XrdCl::stOK,0,0,"");
                         }
                         else{return XRootDStatus( XrdCl::stError,XrdCl::errOSError,-1,"no file opened error");
@@ -172,11 +193,17 @@ enum Mode{Local,Proxy,Undefined};
                         virtual XRootDStatus Read(uint64_t offset,uint32_t size,
                                                   void  *buffer,XrdCl::ResponseHandler *handler, 
                                                   uint16_t timeout ){
-                            if(mode==Proxy){return file2.Read(offset,size,buffer,handler,timeout);}         
                         XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-                        log->Debug(1,"RedLocalFile::Read");
+                        log->Debug(1,"Locfile::Read");
+                            if(mode==Proxy){
+                                assert(xfile.IsOpen()==true);
+                                return xfile.Read(offset,size,buffer,handler,timeout);
+                                
+                            }         
                        file->seekp(offset);
                        file->read((char*)buffer,size);
+                    XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
+              handler->HandleResponse(ret_st,0);
               return  XRootDStatus(XrdCl::stOK,0,0,"");
 
                         }
@@ -187,8 +214,16 @@ enum Mode{Local,Proxy,Undefined};
                           ResponseHandler *handler,
                           uint16_t         timeout = 0 )
                 {
-                if(mode==Proxy){return file2.Write(offset,size,buffer,handler,timeout); }
-                    std::cout<<"write!"<<std::endl;
+                        XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+                        log->Debug(1,"Locfile::Write");
+PostMaster *postMaster = DefaultEnv::GetPostMaster();
+  if( !postMaster )
+            return Status( stError, errUninitialized );
+  else log->Debug(1,"Postmaster is OK");
+  if(mode==Proxy){
+                                assert(xfile.IsOpen()==true);
+                    return xfile.Write(offset,size,buffer,handler,timeout); 
+                }
                     file->seekg(offset);
                 file->write((char*)buffer,size);
                     XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
