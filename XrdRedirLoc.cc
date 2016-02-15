@@ -95,7 +95,7 @@ class Locfile : public XrdCl::FilePlugIn {
 
 				string proxy="root://";
 				std::stringstream protocol;
-				protocol<<xUrl.GetProtocol();
+				//protocol<<xUrl.GetProtocol();
 
 				proxy.append(protocol.str().c_str());
 				proxy.append(proxyPrefix);
@@ -141,7 +141,8 @@ class Locfile : public XrdCl::FilePlugIn {
 								   ResponseHandler   *handler,
 								   uint16_t           timeout )
 		{
-			auto newurl= rewrite_path(url)    ;
+		    std::cout<<"stuff"<<std::endl;
+		    auto newurl= rewrite_path(url)    ;
 			PostMaster *postMaster = DefaultEnv::GetPostMaster();
 			if( !postMaster )
 				return Status( stError, errUninitialized );
@@ -159,6 +160,9 @@ class Locfile : public XrdCl::FilePlugIn {
 													  1,
 													  "file could not be opened");
 			if(file->fail())std::cout<<"fail!"<<std::endl;
+			
+			XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
+			handler->HandleResponse(ret_st,0);
 			return XRootDStatus(XrdCl::stOK,0,0,"");
 		}
 
@@ -201,9 +205,7 @@ class Locfile : public XrdCl::FilePlugIn {
 //build all POSIX stat here;
 				StatInfo* sinfo = new StatInfo();
 				std::ostringstream data;
-				data<<"File: "<< path <<"\n"<<
-					"length: "<< s.st_size <<"\n"<<
-					"last mod: "<< s.st_mtime <<"\n"<<std::endl;
+				data<<s.st_dev <<" "<< s.st_size <<" "<<s.st_mode<<" "<<s.st_mtime ;
 
 				if(!sinfo->ParseServerResponse(data.str().c_str())) {
 					delete sinfo;
@@ -225,7 +227,7 @@ class Locfile : public XrdCl::FilePlugIn {
 			}
 		}
 
-		virtual XRootDStatus Read(uint64_t offset,uint32_t size,
+		virtual XRootDStatus Read(uint64_t offset,uint32_t length,
 								  void  *buffer,XrdCl::ResponseHandler *handler,
 								  uint16_t timeout )
 		{
@@ -233,13 +235,16 @@ class Locfile : public XrdCl::FilePlugIn {
 			log->Debug(1,"Locfile::Read");
 			if(mode==Proxy) {
 				assert(xfile.IsOpen()==true);
-				return xfile.Read(offset,size,buffer,handler,timeout);
+				return xfile.Read(offset,length,buffer,handler,timeout);
 
 			}
 			file->seekp(offset);
-			file->read((char*)buffer,size);
+			file->read( (char*)buffer,length);
 			XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
-			handler->HandleResponse(ret_st,0);
+			ChunkInfo* chunkInfo=new ChunkInfo(offset,length,buffer );
+			AnyObject* obj=new AnyObject();
+			obj->Set(chunkInfo);
+			handler->HandleResponse(ret_st,obj);
 			return  XRootDStatus(XrdCl::stOK,0,0,"");
 
 		}
