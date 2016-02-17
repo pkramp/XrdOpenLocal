@@ -56,23 +56,17 @@ public:
      }
      static void parseIntoLocalMap(std::string configline)
      {
-          std::string delim = ";";
-          std::string subdelim="§§";
-          auto start = 0;
-          auto end = configline.find(delim);
-          do
-          {
+       std::istringstream ss(configline);
+       std::string token;
 
-               std::string sub= configline.substr(start, end - start);
-               auto startx = 0;
-               auto endx = sub.find(subdelim);
-               std::string lpath=sub.substr(0,endx);
-               std::string rpath=sub.substr(endx+subdelim.length(),sub.length()-endx);
-               setSwapLocalMap(std::make_pair(lpath,rpath));
-               start = end + delim.length();
-               end = configline.find(delim, start);
-          }
-          while (end != std::string::npos);
+        while(std::getline(ss,token,';')){
+            std::istringstream sub(token);
+            std::string lpath;
+            std::string rpath;
+            std::getline(sub,lpath,'|');
+            std::getline(sub,rpath,'|');
+  setSwapLocalMap(std::make_pair(lpath,rpath));
+        }
      }
 
      std::string  getLocalAdressMap( std::string servername)
