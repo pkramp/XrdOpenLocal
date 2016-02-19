@@ -25,7 +25,7 @@ private:
      static std::string proxyPrefix; 
      std::string path;
      Mode mode;
-    ///@file fiel for local access
+    ///@file file for local access
      fstream* file;
      //(@xfile Xrootd Client File to use the proxyfied URLs
      XrdCl::File xfile;
@@ -95,6 +95,7 @@ public:
                log->Debug(1,"Locfile::rewrite Setting plugIn to \"local\"- mode");
                out<<" to: \""<<path<<"\""<<std::endl;
                log->Debug(1,out.str().c_str());
+                this->path=path;
                return path;
           }
           {
@@ -109,7 +110,7 @@ public:
                log->Debug(1,"Locfile::rewrite Setting plugIn to \"proxy - prefix\"-mode");
                out<<" to: "<<proxy<<"\""<<std::endl;
                log->Debug(1,out.str().c_str());
-
+                this->path=proxy;
                return proxy;
           }
 
@@ -186,7 +187,7 @@ public:
 
      virtual bool IsOpen() const
      {
-          if(this->mode==Proxy)return xfile.IsOpen();
+         if(this->mode==Proxy)return xfile.IsOpen();
           if(this->mode==Local)return file->is_open();
 
      }
@@ -203,13 +204,18 @@ public:
           {
                if(file!=NULL)
                {
+    
+
 
                     struct stat s;
                     stat(path.c_str(),&s);
                     StatInfo* sinfo = new StatInfo();
                     std::ostringstream data;
                     data<<s.st_dev <<" "<< s.st_size <<" "<<s.st_mode<<" "<<s.st_mtime ;
-
+                    std::string output ="Locfile::Stat, stats are: (_dev,_size,_mode,_mtime) ";
+                    output.append(data.str().c_str());
+            log->Debug(1,output.c_str());
+                    
                     if(!sinfo->ParseServerResponse(data.str().c_str()))
                     {
                          delete sinfo;
