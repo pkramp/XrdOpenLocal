@@ -136,9 +136,10 @@ public:
      //Destructor
      ~Locfile()
      {
-          XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-          log->Debug(1,"Locfile::~Locfile");
-        
+        //  XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+        //  log->Debug(1,"Locfile::~Locfile");
+     if(this->mode==Local)delete file;
+
 //   delete file;
 //         file=NULL;
      }
@@ -184,7 +185,6 @@ public:
           {
                log->Debug(1,"Locfile::Close::Local");
                file->close();
-               file=NULL;
                XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
                handler->HandleResponse(ret_st,0);
                return  XRootDStatus(XrdCl::stOK,0,0,"");
@@ -365,8 +365,8 @@ public:
      //Destructor
      ~Locfilesys()
      {
-          XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-          log->Debug(1,"Locfilesys::~Locfilesys");
+         // XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+         // log->Debug(1,"Locfilesys::~Locfilesys");
           //delete pFile;
 
      }
