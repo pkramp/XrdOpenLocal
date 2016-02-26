@@ -93,10 +93,13 @@ public:
           {
                mode=Local;
                log->Debug(1,"Locfile::rewrite Setting plugIn to \"local\"- mode");
-               out<<" to: \""<<path<<"\""<<std::endl;
+               std::string   pathx=getLocalAdressMap(servername);
+               pathx.append(path);
+               this->path=pathx;
+               out<<" to: \""<<pathx<<"\""<<std::endl;
                log->Debug(1,out.str().c_str());
-                this->path=path;
-               return path;
+                
+                return pathx;
           }
           {
                mode=Proxy;
@@ -135,7 +138,9 @@ public:
      {
           XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
           log->Debug(1,"Locfile::~Locfile");
-          delete file;
+        
+//   delete file;
+//         file=NULL;
      }
 
      //Open()
@@ -179,16 +184,17 @@ public:
           {
                log->Debug(1,"Locfile::Close::Local");
                file->close();
+               file=NULL;
                XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
                handler->HandleResponse(ret_st,0);
                return  XRootDStatus(XrdCl::stOK,0,0,"");
           }
      }
 
-     virtual bool IsOpen() const
-     {
+     virtual bool IsOpen()  const    {
          if(this->mode==Proxy)return xfile.IsOpen();
-          if(this->mode==Local)return file->is_open();
+          if(this->mode==Local && file!=NULL){return file->is_open();}
+          return false;
 
      }
      virtual XRootDStatus Stat(bool force,ResponseHandler *handler,uint16_t timeout)
