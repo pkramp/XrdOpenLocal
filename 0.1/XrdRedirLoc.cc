@@ -356,7 +356,7 @@ namespace XrdRedirectToLocal {
 
 void ReadLocalFactory::loadDefaultConf(std::map<std::string,std::string>& config) {
 	XrdCl::Log *log = DefaultEnv::GetLog();
-	log->Debug( 1, "RedLocalFactory::loadDefaultConf" );
+	log->Debug( 1, "ReadLocalFactory::loadDefaultConf" );
 	if(const char* env_p = std::getenv("XrdRedirLocDEFAULTCONF")) {
 		std::string confFile=env_p;
 		std::stringstream msg;
@@ -393,7 +393,7 @@ void ReadLocalFactory::loadDefaultConf(std::map<std::string,std::string>& config
 ReadLocalFactory::ReadLocalFactory( const std::map<std::string, std::string> &config ) :
 	XrdCl::PlugInFactory() {
 	XrdCl::Log *log = DefaultEnv::GetLog();
-	log->Debug( 1, "RedLocalFactory::Constructor" );
+	log->Debug( 1, "ReadLocalFactory::Constructor" );
 
 	if(config.find("proxyPrefix")!=config.end())Locfile::Locfile::setProxyPrefix(config.find("proxyPrefix")->second);
 
@@ -413,7 +413,7 @@ ReadLocalFactory::ReadLocalFactory( const std::map<std::string, std::string> &co
 }
 ReadLocalFactory::~ReadLocalFactory() {
 	XrdCl::Log *log = XrdCl::DefaultEnv::GetLog();
-	log->Debug( 1, "ReadLocalFactory::~RedLocalFactory" );
+	log->Debug( 1, "ReadLocalFactory::~ReadLocalFactory" );
 }
 
 XrdCl::FilePlugIn * ReadLocalFactory::CreateFile( const std::string &url ) {
