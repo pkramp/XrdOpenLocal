@@ -41,8 +41,13 @@ public:
 		}
 
 		stringstream msg;
-		msg<<"proxyPrefix: " << proxyPrefix<<std::endl;
+		if(proxyPrefix.compare("UNSET")==0) {
+			msg<<"proxyPrefix: is unset and not used"<<std::endl;
+		} else {
+			msg<<"proxyPrefix: " << proxyPrefix<<std::endl;
+		}
 		log->Debug(1,msg.str().c_str());
+
 	}
 	static void setSwapLocalMap(std::pair<std::string,std::string>toadd) {
 		swapLocalMap.insert(toadd);
@@ -80,34 +85,38 @@ public:
 		out << "Locfile::setting  url:\"" <<url<<"\"";
 		if(getLocalAdressMap(servername).compare("NotInside")!=0) {
 			mode=Local;
-			log->Debug(1,"Locfile::rewrite Setting plugIn to \"local\"- mode");
 			std::string   lpath=getLocalAdressMap(servername);
 			lpath.append(path);
 			this->path=lpath;
+
+			log->Debug(1,"Locfile::rewrite Setting plugIn to \"local\"- mode");
 			out<<" to: \""<<lpath<<"\""<<std::endl;
 			log->Debug(1,out.str().c_str());
 
 			return lpath;
 		}
-		{
-			mode=Default;
+
+
+		mode=Default;
+		if(proxyPrefix.compare("UNSET")==0) {
+			this->path=url;
+			return url;
+		} else {
 
 			string proxy="root://";
 			std::stringstream protocol;
 			proxy.append(protocol.str().c_str());
 			proxy.append(proxyPrefix);
 			proxy.append(url);
-
 			log->Debug(1,"Locfile::rewrite Setting plugIn to \"proxy - prefix\"- mode");
 			out<<" to: "<<proxy<<"\""<<std::endl;
 			log->Debug(1,out.str().c_str());
-			this->path=proxy;
-			return proxy;
+
+		this->path=proxy;
+		return proxy;
 		}
 
-		if(mode==Undefined) {
-			throw std::runtime_error("Locfile::rewrite undefined mode, no mode set");
-		}
+
 	}
 
 	//Constructor
@@ -116,7 +125,7 @@ public:
 		log->Debug(1,"Locfile::Locfile");
 		file=new fstream();
 		mode=Undefined;
-	    
+
 	}
 
 
@@ -132,24 +141,30 @@ public:
 	                           ResponseHandler   *handler,
 	                           uint16_t           timeout ) {
 		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+		XRootDStatus* ret_st;
 
 		auto newurl= rewrite_path(url);
 		log->Debug(1,"Locfile::Open");
-		if(this->mode==Proxy) {
+		if(this->mode==Default) {
 			return xfile.Open(newurl,flags,mode,handler,timeout);
 		}
 		if(this->mode==Local) {
-		file->open(newurl.c_str(),std::ios::in  | std::ios::out| std::ios::app );
-			if(file->fail()) return XRootDStatus( XrdCl::stError,XrdCl::errOSError, 1,"file could not be opened");
-			XRootDStatus* ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
-			handler->HandleResponse(ret_st,0);
-			return XRootDStatus(XrdCl::stOK,0,0,"");
+			file->open(newurl.c_str(),std::ios::in  | std::ios::out| std::ios::app );
+			if(file->fail()) {
+				ret_st=new XRootDStatus( XrdCl::stError,XrdCl::errOSError, 1,"file could not be opened");
+				handler->HandleResponse(ret_st,0);
+				return *ret_st;
+			} else {
+				ret_st=new XRootDStatus(XrdCl::stOK,0,0,"");
+				handler->HandleResponse(ret_st,0);
+				return *ret_st;
+			}
 		}
 	}
 
 	virtual XRootDStatus Close(ResponseHandler *handler,uint16_t timeout) {
 		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-		if(mode==Proxy) {
+		if(mode==Default) {
 			return xfile.Close(handler,timeout);
 		}
 
@@ -164,7 +179,7 @@ public:
 	}
 
 	virtual bool IsOpen()  const    {
-		if(this->mode==Proxy)               return xfile.IsOpen();
+		if(this->mode==Default)             return xfile.IsOpen();
 		if(this->mode==Local && file!=NULL) return file->is_open();
 		return false;
 
@@ -173,11 +188,11 @@ public:
 		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
 		log->Debug(1,"Locfile::Stat");
 
-		if(this->mode==Proxy) {
+		if(this->mode==Default) {
 			return xfile.Stat(force,handler,timeout);
 		}
 		if(this->mode==Local) {
-			if(file!=NULL) {
+			if(file->is_open() && file!=NULL) {
 				struct stat s;
 				stat(path.c_str(),&s);
 				StatInfo* sinfo = new StatInfo();
@@ -205,6 +220,7 @@ public:
 				return XRootDStatus( XrdCl::stError,XrdCl::errOSError,-1,"no file opened error");
 			}
 		}
+				return XRootDStatus( XrdCl::stError,XrdCl::errOSError,-1,"no file opened error");
 	}
 
 	virtual XRootDStatus Read(uint64_t offset,uint32_t length,
@@ -212,7 +228,7 @@ public:
 	                          uint16_t timeout ) {
 		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
 		log->Debug(1,"Locfile::Read");
-		if(mode==Proxy) {
+		if(mode==Default) {
 			assert(xfile.IsOpen()==true);
 			return xfile.Read(offset,length,buffer,handler,timeout);
 
@@ -236,11 +252,6 @@ public:
 	                    uint16_t         timeout = 0 ) {
 		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
 		log->Debug(1,"Locfile::Write");
-		PostMaster *postMaster = DefaultEnv::GetPostMaster();
-		if(mode==Proxy) {
-			assert(xfile.IsOpen()==true);
-			return xfile.Write(offset,size,buffer,handler,timeout);
-		}
 		if(mode==Local) {
 			file->seekg(offset);
 			file->write((char*)buffer,size);
@@ -249,10 +260,16 @@ public:
 			return  XRootDStatus(XrdCl::stOK,0,0,"");
 
 		}
+		if(mode==Default) {
+			assert(xfile.IsOpen()==true);
+			return xfile.Write(offset,size,buffer,handler,timeout);
+		}
+	    
+			throw std::runtime_error("Locfilesys:: undefined mode");
 	}
 };
 std::map<std::string,std::string> Locfile::swapLocalMap ;
-std::string Locfile::proxyPrefix;
+std::string Locfile::proxyPrefix="UNSET";
 
 class Locfilesys : public XrdCl::FileSystemPlugIn {
 private:
@@ -286,7 +303,7 @@ public:
 
 
 		if(mode==Undefined) {
-			throw std::runtime_error("Locfilesys::rewrit Undefined Mode in Plugin Line: __LINE__ ");
+			throw std::runtime_error("Locfilesys::rewrite undefined mode");
 		}
 	}
 
@@ -318,7 +335,7 @@ public:
 	                             uint16_t           timeout ) {
 		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
 		log->Debug(1,"Locfilesys::Locate");
-		return  XrdCl::FileSystemPlugIn::Locate(path,flags,handler,timeout);
+		return fs.Locate(orig_url(path),flags,handler,timeout);
 	}
 
 
@@ -333,7 +350,7 @@ public:
 	}
 };
 
-std::string Locfilesys::proxyPrefix;
+std::string Locfilesys::proxyPrefix="UNSET";
 }
 namespace XrdRedirectToLocal {
 
@@ -347,7 +364,7 @@ void ReadLocalFactory::loadDefaultConf(std::map<std::string,std::string>& config
 		log->Debug( 1,msg.str().c_str() );
 
 		Status st = XrdCl::Utils::ProcessConfig( config, confFile );
-		if(config.size() ==0 )throw std::runtime_error("LocFile cannot be loaded as the default plugin since it does not seem to have any content");
+		if(config.size() ==0 )throw std::runtime_error("LocFile cannot be loaded as the default plugin since the config file does not seem to have any content");
 		if( !st.IsOK() ) {
 			return;
 		}
@@ -360,21 +377,15 @@ void ReadLocalFactory::loadDefaultConf(std::map<std::string,std::string>& config
 		}
 
 		//--------------------------------------------------------------------------
-		// Attempt to load the plug in and place it in the map
+		// Attempt to load the plug-in config-file and place it into the config map
 		//--------------------------------------------------------------------------
 		std::string url = config["url"];
 		std::string lib = config["lib"];
 		std::string enable = config["enable"];
-
-
 		if( enable == "false" ) {
 			throw std::runtime_error("Locfile cannot be loaded as the default plugin, since \"enable\" is set \"false\"  in the XrdRedirLocDEFAULTCONF file ");
-
 		}
-	
-	}
-
-	else {
+	} else {
 		throw std::runtime_error("Locfile cannot be loaded as the default plugin, since XrdRedirLocDEFAULTCONF is not set in the environment");
 	}
 }
@@ -387,10 +398,10 @@ ReadLocalFactory::ReadLocalFactory( const std::map<std::string, std::string> &co
 	if(config.find("proxyPrefix")!=config.end())Locfile::Locfile::setProxyPrefix(config.find("proxyPrefix")->second);
 
 	if(config.find("redirectlocal")!=config.end())Locfile::Locfile::parseIntoLocalMap(config.find("redirectlocal")->second);
-	
+
 	if(config.size()==0) {
 		std::map<std::string,std::string> defaultconfig;
-		log->Debug(1,"config size is zero... This is a default plugin call -> loading default config File @ XrdRedirLocDEFAULTCONF Environment Variable ");
+		log->Debug(1,"config size is zero... This is a default plugin call -> loading default config file @ XrdRedirLocDEFAULTCONF Environment Variable ");
 		loadDefaultConf(defaultconfig);
 		//load config for Fileplugin
 		if(defaultconfig.find("proxyPrefix")!=defaultconfig.end())Locfile::Locfile::setProxyPrefix(defaultconfig.find("proxyPrefix")->second);
@@ -403,8 +414,8 @@ ReadLocalFactory::ReadLocalFactory( const std::map<std::string, std::string> &co
 ReadLocalFactory::~ReadLocalFactory() {
 	XrdCl::Log *log = XrdCl::DefaultEnv::GetLog();
 	log->Debug( 1, "ReadLocalFactory::~RedLocalFactory" );
-
 }
+
 XrdCl::FilePlugIn * ReadLocalFactory::CreateFile( const std::string &url ) {
 	XrdCl::Log *log = XrdCl::DefaultEnv::GetLog();
 	log->Debug( 1, "ReadLocalFactory::CreateFile" );

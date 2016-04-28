@@ -28,15 +28,15 @@ namespace XrdRedirectToLocal {
 //----------------------------------------------------------------------------
 // Plugin factory
 //----------------------------------------------------------------------------
-class RedLocalFactory: public XrdCl::PlugInFactory {
+class ReadLocalFactory: public XrdCl::PlugInFactory {
 	public:
 		//------------------------------------------------------------------------
 		// Constructore
 		//------------------------------------------------------------------------
-		RedLocalFactory(const std::map<std::string, std::string> &config);
+		ReadLocalFactory(const std::map<std::string, std::string> &config);
 		//------------------------------------------------------------------------
 		// Destructor
-		virtual ~RedLocalFactory();
+		virtual ~ReadLocalFactory();
 
 		//------------------------------------------------------------------------
 		// Create a file plug-in for the given URL
