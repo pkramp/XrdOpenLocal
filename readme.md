@@ -31,6 +31,8 @@ Sadly I have yet to find a vanilla way to give a configuration file to the defau
 In the meantime, you need to set the XrdRedirLocDEFAULTCONF environmental variable to the specific config file, if you want to use it as a default plug-in.
 
 # Install and tests
+To compile the plug-in, you need to set the XRD_PATH environmental variable to the toplevel of your XRootD installation.
+
 You can compile the plug-in library with :
 ```shell
 make
