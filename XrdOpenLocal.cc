@@ -1,4 +1,4 @@
-#include "XrdRedirLoc.hh"
+#include "XrdOpenLocal.hh"
 #include <exception>
 #include <cstdlib>
 #include <string>
