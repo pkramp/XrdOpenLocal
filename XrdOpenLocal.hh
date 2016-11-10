@@ -31,19 +31,19 @@
 extern XrdCl::Log XrdClRFSLog;
 
 
-namespace XrdRedirectToLocal {
+namespace XrdOpenLocalFactory{
 //----------------------------------------------------------------------------
 // Plugin factory
 //----------------------------------------------------------------------------
-class ReadLocalFactory: public XrdCl::PlugInFactory {
+class XOLFactory : public XrdCl::PlugInFactory {
 	public:
 		//------------------------------------------------------------------------
 		// Constructore
 		//------------------------------------------------------------------------
-		ReadLocalFactory(const std::map<std::string, std::string> &config);
+		XOLFactory(const std::map<std::string, std::string> &config);
 		//------------------------------------------------------------------------
 		// Destructor
-		virtual ~ReadLocalFactory();
+		virtual ~XOLFactory();
 
 		//------------------------------------------------------------------------
 		// Create a file plug-in for the given URL
@@ -55,8 +55,6 @@ class ReadLocalFactory: public XrdCl::PlugInFactory {
 		virtual XrdCl::FileSystemPlugIn *CreateFileSystem(const std::string &url);
 		//------------------------------------------------------------------------
 		// load default config:
-		void loadDefaultConf(std::map<std::string,std::string>& config);
-		//------------------------------------------------------------------------
 		
 
 	private:
