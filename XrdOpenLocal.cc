@@ -70,7 +70,12 @@ public:
 
 	std::string LocalPath(std::string url) {
 		XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
-		XrdCl::URL xUrl(url);
+		XrdCl::URL xUrl(url, false);
+		if((xUrl.GetProtocol())=="file"){
+			log->Dump(0x94,"PROTOCOL IS FILE");
+			return url;
+		}
+
 		string path=xUrl.GetPath();
 		string servername=xUrl.GetHostName();
 		std::stringstream out;
@@ -97,6 +102,18 @@ public:
 		xfile.Close();
 	
 	}
+
+	virtual std::string ComputeURL(const std::string &url){
+		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
+		log->Dump(0x94,"Url received is %s", url.c_str());
+		
+		std::string computedUrl=LocalPath(url);
+		log->Dump(0x94,"computedUrl received is %s", computedUrl.c_str());
+		if(computedUrl.size()>0)
+			return computedUrl;
+		else return url;
+	}
+
 	//Open()
 	virtual XRootDStatus Open( const std::string &url,
 	                           OpenFlags::Flags   flags,
