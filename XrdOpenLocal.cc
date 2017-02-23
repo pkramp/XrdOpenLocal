@@ -13,6 +13,7 @@
 #include <utility>
 #include "XrdCl/XrdClUtils.hh"
 #include <assert.h>
+#include <exception>
 using namespace XrdCl;
 XrdVERSIONINFO(XrdClGetPlugIn, OpenLocal);
 
@@ -83,6 +84,10 @@ public:
 			log->Debug(1,out.str().c_str());
 
 			return lpath;
+		}
+		else {
+			throw std::invalid_argument("Plugin was loaded for "+url+" but redirectlocal did not contain any entries for it.");
+			return url;		
 		}
 	}
 

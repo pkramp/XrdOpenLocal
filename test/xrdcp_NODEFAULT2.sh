@@ -10,7 +10,7 @@ fi
 cat > test/XrdOpenLocal.conf << EOF
 url = root://test.test
 lib = $PWD/XrdOpenLocal.so
-redirectlocal = test.test|/tmp/
+redirectlocal = a|b
 enable = true
 EOF
 export XRD_PLUGINCONFDIR=$PWD/test
