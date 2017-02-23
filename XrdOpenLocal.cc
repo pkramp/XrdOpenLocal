@@ -18,14 +18,11 @@ XrdVERSIONINFO(XrdClGetPlugIn, OpenLocal);
 
 namespace OpenLocal {
 class OpenLocalFile : public XrdCl::FilePlugIn {
-
-
 private:
 
 	///@swapLocalMap a map for rewrite some server specific URL to using an local file
 	// e.g. root://xrd-manager.your.site to /your/filesystem/xrdmanager (specified in the xrootd plugin config file)
 	static std::map<std::string,std::string> swapLocalMap;
-	///@proxyPrefix The prefix that will be added to any root query that cannot use local available files
 	///@file file for local access
 	fstream* file;
 	XrdCl::File xfile;
@@ -71,10 +68,6 @@ public:
 	std::string LocalPath(std::string url) {
 		XrdCl::Log *log= XrdCl::DefaultEnv::GetLog();
 		XrdCl::URL xUrl(url, false);
-		if((xUrl.GetProtocol())=="file"){
-			log->Dump(0x94,"PROTOCOL IS FILE");
-			return url;
-		}
 
 		string path=xUrl.GetPath();
 		string servername=xUrl.GetHostName();
@@ -100,15 +93,12 @@ public:
 	//Destructor
 	~OpenLocalFile() {
 		xfile.Close();
-	
 	}
 
 	virtual std::string ComputeURL(const std::string &url){
 		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-		log->Dump(0x94,"Url received is %s", url.c_str());
 		
 		std::string computedUrl=LocalPath(url);
-		log->Dump(0x94,"computedUrl received is %s", computedUrl.c_str());
 		if(computedUrl.size()>0)
 			return computedUrl;
 		else return url;
@@ -120,13 +110,10 @@ public:
 	                           Access::Mode       mode,
 	                           ResponseHandler   *handler,
 	                           uint16_t           timeout ) {
-		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-		log->Debug(1,"OpenLocalFile::Open");
-		return xfile.Open(LocalPath(url),flags,mode,handler,timeout);
+		return xfile.Open(url,flags,mode,handler,timeout);
 		}
 
 	virtual XRootDStatus Close(ResponseHandler *handler,uint16_t timeout) {
-		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
 			xfile.Close(handler,timeout);
 			return  XRootDStatus(XrdCl::stOK,0,0,"");
 
@@ -134,13 +121,10 @@ public:
 	}
 
 	virtual bool IsOpen()  const    {
-	 return xfile.IsOpen();
+	  return xfile.IsOpen();
 	}
-	virtual XRootDStatus Stat(bool force,ResponseHandler *handler,uint16_t timeout) {
-		XrdCl::Log *log=XrdCl::DefaultEnv::GetLog();
-		log->Debug(1,"OpenLocalFile::Stat");
-	
-	return xfile.Stat(force,handler,timeout);
+	virtual XRootDStatus Stat(bool force,ResponseHandler *handler,uint16_t timeout) {	
+		return xfile.Stat(force,handler,timeout);
 	}
 
 	virtual XRootDStatus Read(uint64_t offset,uint32_t length,

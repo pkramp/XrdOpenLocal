@@ -4,21 +4,18 @@ if
     export XRD_LOGLEVEL=Dump
 
 fi
-
+export XRD_LOGLEVEL=Dump
 ###Setup the test
 cat > test/XrdOpenLocal.conf << EOF
 url = root://test.test
 lib = $PWD/XrdOpenLocal.so
-redirectlocal = test.test|/tmp/
+#redirectlocal = test.test|/tmp/
+redirectlocal = a|b
 enable = true
 EOF
 export XRD_PLUGINCONFDIR=$PWD/test
 echo "test_NODEFAULT" > /tmp/testfile
 
-
-##Run the test
-echo -e "\e[93m xrdcp a local file \e[0m"
-xrdcp /tmp/testfile .
 echo -e "\e[93m xrdfs a rm on a non existing "test.test" remote and redirecting it to local \e[0m"
 #xrdfs root://127.0.0.1:1094// rm /tmp/testfile
 xrdfs root://test.test rm /tmp/testfile

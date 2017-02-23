@@ -5,6 +5,7 @@ if
 
 fi
 
+    export XRD_LOGLEVEL=Dump
 ###Setup the test
 cat > test/XrdOpenLocal.conf << EOF
 url = root://test.test

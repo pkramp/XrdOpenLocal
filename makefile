@@ -13,7 +13,8 @@ XrdOpenLocal.so:
 	g++ -shared  -L$(XRD_PATH)/lib -Wl,-soname,XrdOpenLocal.so.1,--export-dynamic -o XrdOpenLocal.so *.o -lXrdUtils -lXrdCl
 	
 test: XrdOpenLocal.so
-	@./test/xrdcp_NODEFAULT2.sh $(DBG)
+	#@./test/xrdcp_NODEFAULT2.sh $(DBG)
+	@./test/xrdfs_NODEFAULT.sh $(DBG)
 	
 clean:clean_o clean_lib clean_exe 
 
